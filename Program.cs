@@ -1,5 +1,8 @@
-﻿using System;
+using System;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using Amqp;
+using Amqp.Sasl;
 
 namespace example {
     class BasicScdsAmqpConsumer
@@ -24,13 +27,21 @@ namespace example {
                 int initialCredit = 5;
                 bool quiet = false;
 
-                Address address = new Address(addressString,5668,username,password,"/","amqps");
-                connection = new Connection(address);
-                Session session = new Session(connection);
+                Address address = new Address(addressString,5668,username,password,"/","amqps");     
+
+                ConnectionFactory factory = new ConnectionFactory();
+                factory.SSL.ClientCertificates.Add(new X509Certificate(@"scds.cert"));  
+                factory.SASL.Profile = SaslProfile.External;           
+                factory.SSL.RemoteCertificateValidationCallback = ValidateServerCertificate; 
+                connection = factory.CreateAsync(address).Result;                
+                
+                Session session = new Session(connection);                
                 ReceiverLink receiver = new ReceiverLink(session, "amqpConsumer", queue);
+                
                 TimeSpan timeout = TimeSpan.MaxValue;
                 if (!forever)
                     timeout = TimeSpan.FromSeconds(clientTimeout);
+
                 Message message = new Message();
                 int nReceived = 0;
                 receiver.SetCredit(initialCredit);
@@ -61,6 +72,14 @@ namespace example {
                 exitCode = ERROR_OTHER;
             }
             return exitCode;
+        }
+
+        static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
+                return true;
+            else
+                return false; 
         }
     }
 }
