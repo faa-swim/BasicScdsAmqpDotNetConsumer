@@ -30,7 +30,9 @@ namespace example {
                 Address address = new Address(addressString,5668,username,password,"/","amqps");     
 
                 ConnectionFactory factory = new ConnectionFactory();
-                factory.SSL.ClientCertificates.Add(new X509Certificate(@"scds.cert"));  
+                //factory.SSL.ClientCertificates.Add(new X509Certificate(@"scds.cert"));  
+                factory.SSL.ClientCertificates.Add(new X509Certificate(@".\digicert_root.cert"));
+                
                 factory.SASL.Profile = SaslProfile.External;           
                 factory.SSL.RemoteCertificateValidationCallback = ValidateServerCertificate; 
                 connection = factory.CreateAsync(address).Result;                
